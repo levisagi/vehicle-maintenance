@@ -15,6 +15,7 @@
   <link rel="icon" href="icon-192.png">
   <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <style>
     :root {
@@ -273,6 +274,12 @@
     }
     .btn-service:hover  { background: var(--olive-light); }
     .btn-service:active { transform: scale(0.97); }
+    .btn-edit {
+      background: #edf4e0;
+      border: 1px solid var(--olive-light);
+      color: var(--olive-dark);
+    }
+    .btn-edit:hover { background: #dde8c0; }
     .btn-upload {
       background: var(--bg3);
       border: 1.5px dashed var(--border);
@@ -750,8 +757,9 @@ firebase.initializeApp({
   messagingSenderId: "1002138936040",
   appId:             "1:1002138936040:web:64f879bf38b8728aefdf5d"
 });
-const db          = firebase.firestore();
-const vehiclesCol = db.collection('vehicles');
+const db   = firebase.firestore();
+const auth = firebase.auth();
+let vehiclesCol = null;
 
 // ─── STATE ───────────────────────────────────────────────────────────────────
 const WARN_DAYS_BEFORE = 3;
@@ -918,7 +926,8 @@ function render() {
       ${licenseHtml}
       <div class="card-actions">
         <button class="btn-service" onclick="openServiceModal('${v.id}')">🔧 רשום טיפול</button>
-        <button class="btn-service btn-upload" onclick="triggerUpload('${v.id}')">📎 העלה רישיון</button>
+        <button class="btn-service btn-edit" onclick="openEditModal('${v.id}')">✏️ עריכה</button>
+        <button class="btn-service btn-upload" onclick="triggerUpload('${v.id}')">📎 רישיון</button>
         <button class="btn-delete" onclick="deleteVehicle('${v.id}')">✕</button>
       </div>
     </div>`;
@@ -962,15 +971,47 @@ function checkAlerts() {
 function openAddModal() {
   editingId = null; pendingFile = null;
   document.getElementById('modal-title').textContent = '➕ הוספת רכב חדש';
-  document.getElementById('f-name').value = '';
-  document.getElementById('f-num').value  = '';
-  document.getElementById('f-date').value = today();
-  document.getElementById('f-type').value = '🚛';
-  document.getElementById('f-interval-val').value  = '28';
-  document.getElementById('f-interval-unit').value = 'days';
-  document.getElementById('f-test-expiry').value   = '';
+  document.getElementById('f-name').value            = '';
+  document.getElementById('f-num').value             = '';
+  document.getElementById('f-date').value            = today();
+  document.getElementById('f-type').value            = '🚛';
+  document.getElementById('f-interval-val').value    = '28';
+  document.getElementById('f-interval-unit').value   = 'days';
+  document.getElementById('f-test-expiry').value     = '';
   document.getElementById('upload-text').textContent = '📎 לחץ להעלאת קובץ';
   document.getElementById('upload-zone').classList.remove('has-file');
+  openModal('vehicle-modal');
+}
+
+function openEditModal(id) {
+  const v = vehicles.find(x => x.id === id);
+  editingId   = id;
+  pendingFile = null;
+
+  document.getElementById('modal-title').textContent = '✏️ עריכת רכב';
+  document.getElementById('f-name').value  = v.name  || '';
+  document.getElementById('f-num').value   = v.num   || '';
+  document.getElementById('f-date').value  = v.lastService || '';
+  document.getElementById('f-type').value  = v.type  || '🚛';
+  document.getElementById('f-test-expiry').value = v.testExpiry || '';
+
+  const iDays = v.intervalDays || 28;
+  if (iDays % 7 === 0) {
+    document.getElementById('f-interval-val').value  = iDays / 7;
+    document.getElementById('f-interval-unit').value = 'weeks';
+  } else {
+    document.getElementById('f-interval-val').value  = iDays;
+    document.getElementById('f-interval-unit').value = 'days';
+  }
+
+  if (v.license) {
+    document.getElementById('upload-text').textContent = `✅ ${v.license.name}`;
+    document.getElementById('upload-zone').classList.add('has-file');
+  } else {
+    document.getElementById('upload-text').textContent = '📎 לחץ להעלאת קובץ';
+    document.getElementById('upload-zone').classList.remove('has-file');
+  }
+
   openModal('vehicle-modal');
 }
 
