@@ -1294,16 +1294,19 @@ function showFirestoreError(err) {
 document.getElementById('vehicles-list').innerHTML =
   '<div class="empty-state"><div class="empty-icon">⏳</div><p>טוען נתונים מהענן...</p></div>';
 
-// 1. טעינה מיידית מהשרת (חד-פעמית, תמיד עובדת)
-vehiclesCol.get({ source: 'server' })
-  .then(applySnapshot)
-  .catch(err => showFirestoreError(err));
+// טעינה + האזנה לשינויים
+function loadData() {
+  vehiclesCol.get()
+    .then(applySnapshot)
+    .catch(err => showFirestoreError(err));
+}
 
-// 2. האזנה לשינויים בזמן אמת (לעדכונים חיים)
-vehiclesCol.onSnapshot(
-  applySnapshot,
-  err => console.warn('onSnapshot error (ignored, using get):', err.code)
-);
+loadData();
+
+// רענון אוטומטי כל 30 שניות (גיבוי אם onSnapshot לא עובד)
+setInterval(loadData, 30000);
+
+vehiclesCol.onSnapshot(applySnapshot, err => console.warn('snapshot:', err.code));
 
 // ─── SERVICE WORKER ──────────────────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
