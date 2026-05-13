@@ -16,6 +16,7 @@
   <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
   <style>
     :root {
       --olive:       #6b8c3e;
@@ -758,6 +759,8 @@ firebase.initializeApp({
 });
 const db          = firebase.firestore();
 const vehiclesCol = db.collection('vehicles');
+const messaging   = firebase.messaging();
+const VAPID_KEY   = 'BH4HmhjCVJ2cwpIZAzdwLSMRw1qhwz7CMz_0wnZ4DhAg3DjK9lTFbl2iSWuPpWzpg75yge0HWnPjCnw9KuWJChI';
 
 // ─── STATE ───────────────────────────────────────────────────────────────────
 const WARN_DAYS_BEFORE = 3;
@@ -1211,7 +1214,7 @@ function isInStandaloneMode() {
   return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
 }
 
-function requestNotifyPermission() {
+async function requestNotifyPermission() {
   // iOS Safari (not installed as PWA)
   if (isIos() && !isInStandaloneMode()) {
     showNotifPopup('📲 כדי לקבל התראות ב-iPhone:\nלחץ על כפתור השיתוף ← "הוסף למסך הבית" ← פתח את האפליקציה מהמסך הבית ← לחץ שוב על הפעל התראות');
@@ -1221,14 +1224,23 @@ function requestNotifyPermission() {
     showNotifPopup('⚠️ הדפדפן אינו תומך בהתראות. נסה לפתוח ב-Chrome.');
     return;
   }
-  Notification.requestPermission().then(p => {
-    if (p === 'granted') {
-      document.getElementById('notify-btn').textContent = '🔔 התראות פעילות';
-      scheduleNotifications();
-    } else {
-      showNotifPopup('⚠️ לא אושרו התראות. אפשר בהגדרות הדפדפן.');
+  const permission = await Notification.requestPermission();
+  if (permission !== 'granted') {
+    showNotifPopup('⚠️ לא אושרו התראות. אפשר בהגדרות הדפדפן.');
+    return;
+  }
+  document.getElementById('notify-btn').textContent = '🔔 התראות פעילות';
+  scheduleNotifications();
+  try {
+    const swReg = await navigator.serviceWorker.ready;
+    const token = await messaging.getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: swReg });
+    if (token) {
+      await db.collection('tokens').doc(token).set({ ts: firebase.firestore.FieldValue.serverTimestamp() });
+      console.log('FCM token saved:', token.substring(0, 20) + '...');
     }
-  });
+  } catch (err) {
+    console.warn('FCM token error:', err.message);
+  }
 }
 
 function sendBrowserNotif(title, body) {

@@ -1,0 +1,8 @@
+{
+  "name": "vehicle-maintenance-push",
+  "private": true,
+  "description": "Daily FCM push script for vehicle maintenance app",
+  "dependencies": {
+    "firebase-admin": "^12.0.0"
+  }
+}
