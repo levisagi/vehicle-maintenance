@@ -657,6 +657,7 @@
       </div>
       <input type="file" id="f-license" accept="image/*,application/pdf" onchange="handleFileSelect(this)">
     </div>
+    <div id="vehicle-error" style="display:none;color:#c0392b;background:#fde8e6;border-radius:8px;padding:10px 14px;font-size:0.85rem;margin-top:4px;text-align:center"></div>
     <div class="modal-actions">
       <button class="btn-save" onclick="saveVehicle()">💾 שמור רכב</button>
       <button class="btn-cancel" onclick="closeModal('vehicle-modal')">ביטול</button>
@@ -678,6 +679,7 @@
       <label>הערות (אופציונלי)</label>
       <input type="text" id="s-notes" placeholder="לדוג': החלפת שמן + פילטר...">
     </div>
+    <div id="service-error" style="display:none;color:#c0392b;background:#fde8e6;border-radius:8px;padding:10px 14px;font-size:0.85rem;margin-top:4px;text-align:center"></div>
     <div class="modal-actions">
       <button class="btn-save" onclick="saveService()">✅ אשר טיפול</button>
       <button class="btn-cancel" onclick="closeModal('service-modal')">ביטול</button>
@@ -893,6 +895,13 @@ function openAddModal() {
   openModal('vehicle-modal');
 }
 
+function showVehicleError(msg) {
+  const el = document.getElementById('vehicle-error');
+  el.textContent = msg;
+  el.style.display = 'block';
+  setTimeout(() => { el.style.display = 'none'; }, 3000);
+}
+
 function saveVehicle() {
   const name = document.getElementById('f-name').value.trim();
   const num  = document.getElementById('f-num').value.trim();
@@ -901,7 +910,9 @@ function saveVehicle() {
   const iVal  = parseInt(document.getElementById('f-interval-val').value) || 28;
   const iUnit = document.getElementById('f-interval-unit').value;
   const iDays = iUnit === 'weeks' ? iVal * 7 : iVal;
-  if (!name) { alert('נא להזין שם רכב'); return; }
+  if (!name) { showVehicleError('⚠️ נא להזין שם רכב'); return; }
+
+  document.getElementById('vehicle-error').style.display = 'none';
 
   if (editingId) {
     const v = vehicles.find(x => x.id === editingId);
@@ -934,7 +945,13 @@ function openServiceModal(id) {
 function saveService() {
   const date  = document.getElementById('s-date').value;
   const notes = document.getElementById('s-notes').value.trim();
-  if (!date) { alert('נא לבחור תאריך'); return; }
+  if (!date) {
+    const el = document.getElementById('service-error');
+    el.textContent = '⚠️ נא לבחור תאריך';
+    el.style.display = 'block';
+    setTimeout(() => { el.style.display = 'none'; }, 3000);
+    return;
+  }
   const v = vehicles.find(x => x.id === serviceId);
   v.lastService = date;
   if (!v.history) v.history = [];
