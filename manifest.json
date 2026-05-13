@@ -1,0 +1,16 @@
+{
+  "name": "מערכת טיפולי רכב",
+  "short_name": "טיפולי רכב",
+  "description": "מערכת ניהול טיפולי רכב צבאית — רס״ר שגיא לוי",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f0ede0",
+  "theme_color": "#4a6628",
+  "orientation": "portrait",
+  "lang": "he",
+  "dir": "rtl",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

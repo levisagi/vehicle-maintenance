@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>טיפולי רכב | רס״ר שגיא לוי</title>
+  <meta name="description" content="מערכת ניהול טיפולי רכב צבאית">
+  <meta name="theme-color" content="#4a6628">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="טיפולי רכב">
+  <link rel="manifest" href="manifest.json">
+  <!-- Apple touch icons (inline SVG as data URI) -->
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="icon" href="icon-192.png">
+  <style>
+    :root {
+      --olive:       #6b8c3e;
+      --olive-dark:  #4a6628;
+      --olive-light: #8aab55;
+      --khaki:       #c8a84b;
+      --khaki-light: #e2c45a;
+      --sand:        #d4c080;
+      --sand-light:  #f5eecc;
+      --bg:          #f0ede0;
+      --bg2:         #ffffff;
+      --bg3:         #e8e4d0;
+      --text:        #2a3318;
+      --text-dim:    #6b7a4a;
+      --red:         #c0392b;
+      --red-dark:    #e74c3c;
+      --red-bg:      #fdf0ee;
+      --green:       #27ae60;
+      --green-dark:  #1e8449;
+      --green-bg:    #edfaf1;
+      --border:      #c5cba8;
+      --shadow:      rgba(74, 102, 40, 0.12);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      direction: rtl;
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: var(--olive-dark);
+      border-bottom: 4px solid var(--khaki);
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .header-emblem {
+      font-size: 30px;
+    }
+    .header-title { flex: 1; min-width: 0; }
+    .header-title h1 {
+      font-size: 1.05rem;
+      color: #f5eecc;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .header-title p {
+      font-size: 0.62rem;
+      color: #b8c890;
+      letter-spacing: 1px;
+    }
+    #notify-btn {
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.35);
+      color: #f5eecc;
+      padding: 8px 12px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 0.75rem;
+      font-family: inherit;
+      white-space: nowrap;
+      transition: background 0.2s;
+    }
+    #notify-btn:hover { background: rgba(255,255,255,0.25); }
+
+    /* ── MAIN ── */
+    main {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 20px 14px;
+    }
+
+    /* ── ALERT BANNER ── */
+    #alert-banner {
+      display: none;
+      background: #fdf0ee;
+      border: 2px solid var(--red-dark);
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin-bottom: 18px;
+      font-size: 0.9rem;
+      color: var(--red-dark);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%,100% { border-color: var(--red-dark); }
+      50%      { border-color: #e74c3c; box-shadow: 0 0 0 3px rgba(192,57,43,0.15); }
+    }
+
+    /* ── STATS BAR ── */
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .stat-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 8px;
+      text-align: center;
+      box-shadow: 0 1px 4px var(--shadow);
+    }
+    .stat-card .num {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--olive-dark);
+    }
+    .stat-card .lbl {
+      font-size: 0.65rem;
+      color: var(--text-dim);
+      margin-top: 2px;
+    }
+
+    /* ── SECTION HEADER ── */
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .section-header h2 {
+      color: var(--olive-dark);
+      font-size: 1rem;
+      letter-spacing: 2px;
+      border-right: 4px solid var(--olive);
+      padding-right: 10px;
+    }
+    #add-btn {
+      background: var(--olive);
+      border: none;
+      color: #fff;
+      padding: 11px 20px;
+      border-radius: 24px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 600;
+      box-shadow: 0 2px 8px rgba(74,102,40,0.3);
+      transition: background 0.2s, transform 0.1s;
+    }
+    #add-btn:hover  { background: var(--olive-light); }
+    #add-btn:active { transform: scale(0.97); }
+
+    /* ── VEHICLE CARDS ── */
+    #vehicles-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 14px;
+    }
+
+    .vehicle-card {
+      background: var(--bg2);
+      border: 2px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      transition: border-color 0.3s, box-shadow 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .vehicle-card.status-ok      { border-color: #a8d8b0; }
+    .vehicle-card.status-due     { border-color: var(--khaki); }
+    .vehicle-card.status-overdue { border-color: var(--red-dark); box-shadow: 0 0 0 3px rgba(192,57,43,0.15); animation: pulse 2.5s infinite; }
+
+    .card-header {
+      background: linear-gradient(135deg, var(--olive-dark) 0%, var(--olive) 100%);
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .card-header .vehicle-icon { font-size: 1.8rem; }
+    .card-header .vehicle-name {
+      flex: 1;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #fff;
+    }
+    .card-header .vehicle-num {
+      font-size: 0.72rem;
+      color: #c8dba0;
+      font-weight: 500;
+    }
+
+    .status-badge {
+      font-size: 0.65rem;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .badge-ok      { background: #d4f5e2; color: var(--green-dark); }
+    .badge-due     { background: #fef3cd; color: #856404; }
+    .badge-overdue { background: #fde8e6; color: var(--red-dark); }
+
+    .card-body { padding: 14px 16px 10px; }
+
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      font-size: 0.84rem;
+    }
+    .info-row .lbl { color: var(--text-dim); }
+    .info-row .val { color: var(--text); font-weight: 600; }
+
+    .progress-bar-wrap {
+      background: var(--bg3);
+      border-radius: 8px;
+      height: 10px;
+      margin: 12px 0 6px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      border-radius: 8px;
+      transition: width 0.5s;
+    }
+    .fill-ok      { background: linear-gradient(90deg, #2ecc71, #27ae60); }
+    .fill-due     { background: linear-gradient(90deg, #f1c40f, #e67e22); }
+    .fill-overdue { background: linear-gradient(90deg, #e74c3c, #c0392b); }
+
+    .card-actions {
+      display: flex;
+      gap: 8px;
+      padding: 10px 16px 14px;
+    }
+    .btn-service {
+      flex: 1;
+      background: var(--olive);
+      border: none;
+      color: #fff;
+      padding: 10px 8px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.82rem;
+      font-weight: 600;
+      transition: background 0.2s, transform 0.1s;
+    }
+    .btn-service:hover  { background: var(--olive-light); }
+    .btn-service:active { transform: scale(0.97); }
+    .btn-upload {
+      background: var(--bg3);
+      border: 1.5px dashed var(--border);
+      color: var(--text-dim);
+    }
+    .btn-upload:hover { background: #dde8c0; color: var(--olive-dark); border-color: var(--olive); }
+    .btn-delete {
+      background: #fde8e6;
+      border: none;
+      color: var(--red-dark);
+      padding: 10px 13px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.82rem;
+      transition: background 0.2s;
+    }
+    .btn-delete:hover { background: var(--red-dark); color: #fff; }
+
+    .license-preview {
+      margin: 0 16px 12px;
+      font-size: 0.75rem;
+      color: var(--olive-dark);
+      background: #edf4e0;
+      border-radius: 8px;
+      padding: 8px 12px;
+      border: 1px solid #c5dba0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .license-preview:hover { background: #ddeec0; }
+
+    /* ── MODAL ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(30,40,15,0.55);
+      backdrop-filter: blur(3px);
+      z-index: 200;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 0;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--bg2);
+      border-radius: 20px 20px 0 0;
+      padding: 24px 20px 32px;
+      width: 100%;
+      max-width: 520px;
+      max-height: 92vh;
+      overflow-y: auto;
+      box-shadow: 0 -4px 24px rgba(0,0,0,0.2);
+      animation: slideUp 0.3s ease;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(40px); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
+    .modal-handle {
+      width: 40px; height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      margin: 0 auto 16px;
+    }
+    .modal h3 {
+      color: var(--olive-dark);
+      letter-spacing: 1px;
+      margin-bottom: 20px;
+      font-size: 1.15rem;
+      border-bottom: 2px solid var(--bg3);
+      padding-bottom: 12px;
+    }
+    .form-group { margin-bottom: 16px; }
+    .form-group label {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    .form-group input, .form-group select {
+      width: 100%;
+      background: var(--bg);
+      border: 1.5px solid var(--border);
+      color: var(--text);
+      padding: 12px 14px;
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 0.95rem;
+      direction: rtl;
+      transition: border-color 0.2s;
+    }
+    .form-group input:focus, .form-group select:focus {
+      outline: none;
+      border-color: var(--olive);
+      box-shadow: 0 0 0 3px rgba(107,140,62,0.15);
+    }
+    .upload-zone {
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      padding: 22px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      font-size: 0.85rem;
+      color: var(--text-dim);
+      background: var(--bg);
+    }
+    .upload-zone:hover  { border-color: var(--olive); background: #edf4e0; }
+    .upload-zone.has-file { border-color: var(--green); background: var(--green-bg); color: var(--green-dark); }
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 22px;
+    }
+    .btn-save {
+      flex: 1;
+      background: var(--olive);
+      border: none;
+      color: #fff;
+      padding: 14px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 1rem;
+      font-weight: 700;
+      transition: background 0.2s;
+      box-shadow: 0 2px 8px rgba(74,102,40,0.3);
+    }
+    .btn-save:hover { background: var(--olive-light); }
+    .btn-cancel {
+      background: var(--bg3);
+      border: none;
+      color: var(--text-dim);
+      padding: 14px 20px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+    .btn-cancel:hover { color: var(--red-dark); background: #fde8e6; }
+
+    /* ── SERVICE HISTORY ── */
+    .history-list {
+      margin: 4px 16px 12px;
+      font-size: 0.76rem;
+    }
+    .history-entry {
+      display: flex;
+      justify-content: space-between;
+      padding: 5px 0;
+      border-bottom: 1px solid var(--bg3);
+      color: var(--text-dim);
+    }
+    .history-entry:last-child { border-bottom: none; }
+    .history-entry .h-date { color: var(--olive-dark); font-weight: 600; }
+
+    /* ── NOTIFICATION POPUP ── */
+    .notif-popup {
+      display: none;
+      position: fixed;
+      top: 76px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 300;
+      background: #fff;
+      border: 2px solid var(--olive);
+      border-radius: 16px;
+      padding: 18px 24px;
+      min-width: 280px;
+      max-width: 90vw;
+      box-shadow: 0 8px 32px rgba(74,102,40,0.25);
+      text-align: center;
+      animation: slideDown 0.3s ease;
+    }
+    .notif-popup.open { display: block; }
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateX(-50%) translateY(-16px); }
+      to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
+    .notif-popup .notif-icon { font-size: 2rem; margin-bottom: 6px; }
+    .notif-popup h4 { color: var(--olive-dark); margin-bottom: 6px; font-size: 1rem; }
+    .notif-popup p  { color: var(--text); font-size: 0.88rem; margin-bottom: 12px; }
+    .notif-popup .notif-close {
+      background: var(--olive);
+      border: none;
+      color: #fff;
+      padding: 8px 24px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.88rem;
+      font-weight: 600;
+    }
+
+    /* ── LICENSE VIEWER ── */
+    .license-modal img {
+      max-width: 100%;
+      border-radius: 8px;
+      margin-top: 12px;
+    }
+
+    /* ── EMPTY STATE ── */
+    .empty-state {
+      text-align: center;
+      padding: 50px 20px;
+      color: var(--text-dim);
+      grid-column: 1/-1;
+    }
+    .empty-state .empty-icon { font-size: 3.5rem; margin-bottom: 12px; }
+    .empty-state p { font-size: 0.9rem; color: var(--text-dim); }
+
+    /* ── FOOTER ── */
+    footer {
+      text-align: center;
+      padding: 20px;
+      color: var(--text-dim);
+      font-size: 0.7rem;
+      letter-spacing: 1px;
+      border-top: 1px solid var(--border);
+      margin-top: 40px;
+    }
+
+    /* ── CAMO STRIPE ── */
+    .camo-stripe {
+      height: 5px;
+      background: repeating-linear-gradient(
+        90deg,
+        var(--olive-dark) 0px, var(--olive-dark) 18px,
+        var(--olive)      18px, var(--olive)      36px,
+        var(--olive-light) 36px, var(--olive-light) 50px,
+        var(--khaki)      50px, var(--khaki)      66px
+      );
+    }
+
+    input[type="file"] { display: none; }
+
+    /* ── MOBILE ── */
+    @media (max-width: 600px) {
+      .header-title h1   { font-size: 0.9rem; letter-spacing: 1px; }
+      .header-title p    { display: none; }
+      #notify-btn        { padding: 7px 10px; font-size: 0.7rem; }
+      .stats-bar         { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+      .stat-card .num    { font-size: 1.5rem; }
+      #vehicles-list     { grid-template-columns: 1fr; }
+      main               { padding: 14px 10px; }
+      .card-actions      { gap: 6px; }
+      .btn-service, .btn-upload, .btn-delete { font-size: 0.78rem; padding: 9px 6px; }
+      .modal             { padding: 20px 16px 28px; }
+    }
+    @media (max-width: 380px) {
+      .header-emblem { font-size: 22px; }
+      .stats-bar     { grid-template-columns: repeat(2,1fr); }
+    }
+  </style>
+</head>
+<body>
+
+<div class="camo-stripe"></div>
+
+<header>
+  <div class="header-emblem">🪖</div>
+  <div class="header-title">
+    <h1>מערכת ניהול טיפולי רכב</h1>
+    <p>VEHICLE MAINTENANCE TRACKING SYSTEM — IDF</p>
+  </div>
+  <button id="notify-btn" onclick="requestNotifyPermission()">🔔 הפעל התראות</button>
+</header>
+
+<main>
+  <div id="alert-banner"></div>
+
+  <div class="stats-bar" id="stats-bar">
+    <div class="stat-card">
+      <div class="num" id="stat-total">0</div>
+      <div class="lbl">סה"כ רכבים</div>
+    </div>
+    <div class="stat-card">
+      <div class="num" id="stat-ok" style="color:var(--green)">0</div>
+      <div class="lbl">תקין</div>
+    </div>
+    <div class="stat-card">
+      <div class="num" id="stat-due" style="color:var(--khaki-light)">0</div>
+      <div class="lbl">קרוב לטיפול</div>
+    </div>
+    <div class="stat-card">
+      <div class="num" id="stat-overdue" style="color:var(--red)">0</div>
+      <div class="lbl">דורש טיפול</div>
+    </div>
+  </div>
+
+  <div class="section-header">
+    <h2>רכבים</h2>
+    <button id="add-btn" onclick="openAddModal()">+ הוסף רכב</button>
+  </div>
+
+  <div id="vehicles-list"></div>
+</main>
+
+<footer>
+  <div style="font-size:0.85rem;font-weight:700;color:var(--olive-dark);margin-bottom:4px">מערכת זו פותחה ע״י רס״ר שגיא לוי</div>
+  <div>⚔️ מערכת ניהול רכב צבאי ⚔️</div>
+</footer>
+
+<!-- ─── ADD/EDIT MODAL ─── -->
+<div class="modal-overlay" id="vehicle-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h3 id="modal-title">➕ הוספת רכב חדש</h3>
+    <div class="form-group">
+      <label>סוג רכב</label>
+      <select id="f-type">
+        <option value="🚛">🚛 משאית</option>
+        <option value="🚙">🚙 ג'יפ</option>
+        <option value="🏎️">🏎️ רכב קל</option>
+        <option value="🚐">🚐 אמבולנס / ניידת</option>
+        <option value="🚌">🚌 אוטובוס</option>
+        <option value="🏗️">🏗️ ציוד כבד</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>שם / כינוי הרכב</label>
+      <input type="text" id="f-name" placeholder="לדוג': ג'יפ מפקד, משאית לוגיסטיקה...">
+    </div>
+    <div class="form-group">
+      <label>מספר רכב / לוחית</label>
+      <input type="text" id="f-num" placeholder="לדוג': 12-345-67">
+    </div>
+    <div class="form-group">
+      <label>תאריך טיפול אחרון</label>
+      <input type="date" id="f-date">
+    </div>
+    <div class="form-group">
+      <label>תדירות טיפול</label>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input type="number" id="f-interval-val" min="1" max="365" value="28"
+               style="width:90px;flex-shrink:0;text-align:center">
+        <select id="f-interval-unit" style="flex:1">
+          <option value="days">ימים</option>
+          <option value="weeks">שבועות</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>רישיון רכב (תמונה / PDF)</label>
+      <div class="upload-zone" id="upload-zone" onclick="document.getElementById('f-license').click()">
+        <div id="upload-text">📎 לחץ להעלאת קובץ</div>
+      </div>
+      <input type="file" id="f-license" accept="image/*,application/pdf" onchange="handleFileSelect(this)">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-save" onclick="saveVehicle()">💾 שמור רכב</button>
+      <button class="btn-cancel" onclick="closeModal('vehicle-modal')">ביטול</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── SERVICE LOG MODAL ─── -->
+<div class="modal-overlay" id="service-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h3>🔧 רישום טיפול</h3>
+    <p style="color:var(--text-dim);font-size:0.82rem;margin-bottom:16px;letter-spacing:1px" id="service-vehicle-name"></p>
+    <div class="form-group">
+      <label>תאריך הטיפול</label>
+      <input type="date" id="s-date">
+    </div>
+    <div class="form-group">
+      <label>הערות (אופציונלי)</label>
+      <input type="text" id="s-notes" placeholder="לדוג': החלפת שמן + פילטר...">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-save" onclick="saveService()">✅ אשר טיפול</button>
+      <button class="btn-cancel" onclick="closeModal('service-modal')">ביטול</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── LICENSE VIEWER MODAL ─── -->
+<div class="modal-overlay" id="license-modal">
+  <div class="modal license-modal">
+    <div class="modal-handle"></div>
+    <h3>📄 רישיון רכב</h3>
+    <div id="license-content"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('license-modal')">סגור</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── NOTIFICATION POPUP ─── -->
+<div class="notif-popup" id="notif-popup">
+  <div class="notif-icon">🚨</div>
+  <h4>התראת טיפול רכב</h4>
+  <p id="notif-text"></p>
+  <button class="notif-close" onclick="closeNotif()">הבנתי</button>
+</div>
+
+<script>
+// ─── STATE ───────────────────────────────────────────────────────────────────
+const WARN_DAYS_BEFORE = 3;
+
+let vehicles   = JSON.parse(localStorage.getItem('mil_vehicles')   || '[]');
+let editingId  = null;
+let serviceId  = null;
+let pendingFile = null; // { name, dataUrl }
+
+// ─── UTILS ───────────────────────────────────────────────────────────────────
+function save() {
+  localStorage.setItem('mil_vehicles', JSON.stringify(vehicles));
+}
+
+function uid() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2);
+}
+
+function today() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function daysDiff(from, to) {
+  const msPerDay = 86400000;
+  return Math.round((new Date(to) - new Date(from)) / msPerDay);
+}
+
+function intervalDays(v) {
+  return v.intervalDays || 28;
+}
+
+function getStatus(v) {
+  if (!v.lastService) return 'overdue';
+  const days = daysDiff(v.lastService, today());
+  const interval = intervalDays(v);
+  if (days >= interval) return 'overdue';
+  if (days >= interval - WARN_DAYS_BEFORE) return 'due';
+  return 'ok';
+}
+
+function daysUntilService(v) {
+  if (!v.lastService) return 0;
+  const elapsed = daysDiff(v.lastService, today());
+  return intervalDays(v) - elapsed;
+}
+
+function formatDate(d) {
+  if (!d) return '---';
+  const [y, m, day] = d.split('-');
+  return `${day}/${m}/${y}`;
+}
+
+// ─── RENDER ──────────────────────────────────────────────────────────────────
+function render() {
+  const list = document.getElementById('vehicles-list');
+  if (vehicles.length === 0) {
+    list.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">🪖</div>
+        <p>אין רכבים במערכת — לחץ "+ הוסף רכב" להתחלה</p>
+      </div>`;
+    updateStats();
+    return;
+  }
+
+  list.innerHTML = vehicles.map(v => {
+    const status   = getStatus(v);
+    const daysLeft = daysUntilService(v);
+    const interval = intervalDays(v);
+    const elapsed  = v.lastService ? daysDiff(v.lastService, today()) : interval;
+    const pct      = Math.min(100, Math.round((elapsed / interval) * 100));
+    const fillCls  = status === 'ok' ? 'fill-ok' : status === 'due' ? 'fill-due' : 'fill-overdue';
+    const cardCls  = `status-${status}`;
+    const badgeMap = { ok: ['badge-ok','✅ תקין'], due: ['badge-due','⚠️ קרוב לטיפול'], overdue: ['badge-overdue','🚨 דורש טיפול'] };
+    const [badgeCls, badgeTxt] = badgeMap[status];
+
+    const daysLabel = status === 'overdue'
+      ? `<span style="color:var(--red)">באיחור של ${Math.abs(daysLeft)} ימים</span>`
+      : `<span style="color:var(--khaki-light)">נותרו ${daysLeft} ימים</span>`;
+
+    const nextService = v.lastService
+      ? (() => { const d = new Date(v.lastService); d.setDate(d.getDate() + interval); return d.toISOString().slice(0,10); })()
+      : null;
+
+    const intervalLabel = interval % 7 === 0
+      ? `כל ${interval / 7} שבועות`
+      : `כל ${interval} ימים`;
+
+    const historyHtml = (v.history || []).slice(-3).reverse().map(h =>
+      `<div class="history-entry">
+        <span>${h.notes || 'טיפול שוטף'}</span>
+        <span class="h-date">${formatDate(h.date)}</span>
+      </div>`).join('');
+
+    const licenseHtml = v.license
+      ? `<div class="license-preview" onclick="viewLicense('${v.id}')">📄 ${v.license.name} — לחץ לצפייה</div>`
+      : '';
+
+    return `
+    <div class="vehicle-card ${cardCls}" id="card-${v.id}">
+      <div class="card-header">
+        <span class="vehicle-icon">${v.type}</span>
+        <span class="vehicle-name">${v.name}</span>
+        <div style="text-align:left">
+          <div class="vehicle-num">${v.num || ''}</div>
+          <span class="status-badge ${badgeCls}">${badgeTxt}</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <span class="lbl">טיפול אחרון</span>
+          <span class="val">${formatDate(v.lastService)}</span>
+        </div>
+        <div class="info-row">
+          <span class="lbl">טיפול הבא</span>
+          <span class="val">${formatDate(nextService)}</span>
+        </div>
+        <div class="info-row">
+          <span class="lbl">תדירות</span>
+          <span class="val" style="color:var(--olive-dark)">${intervalLabel}</span>
+        </div>
+        <div class="info-row">
+          <span class="lbl">סטטוס</span>
+          <span class="val">${daysLabel}</span>
+        </div>
+        <div class="progress-bar-wrap">
+          <div class="progress-bar-fill ${fillCls}" style="width:${pct}%"></div>
+        </div>
+        ${historyHtml ? `<div class="history-list">${historyHtml}</div>` : ''}
+      </div>
+      ${licenseHtml}
+      <div class="card-actions">
+        <button class="btn-service" onclick="openServiceModal('${v.id}')">🔧 רשום טיפול</button>
+        <button class="btn-service btn-upload" onclick="triggerUpload('${v.id}')">📎 העלה רישיון</button>
+        <button class="btn-delete" onclick="deleteVehicle('${v.id}')">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  // hidden file inputs for individual card uploads
+  vehicles.forEach(v => {
+    let inp = document.getElementById(`upload-${v.id}`);
+    if (!inp) {
+      inp = document.createElement('input');
+      inp.type = 'file'; inp.id = `upload-${v.id}`;
+      inp.accept = 'image/*,application/pdf'; inp.style.display = 'none';
+      inp.onchange = () => handleCardUpload(inp, v.id);
+      document.body.appendChild(inp);
+    }
+  });
+
+  updateStats();
+  checkAlerts();
+}
+
+function updateStats() {
+  document.getElementById('stat-total').textContent   = vehicles.length;
+  document.getElementById('stat-ok').textContent      = vehicles.filter(v => getStatus(v) === 'ok').length;
+  document.getElementById('stat-due').textContent     = vehicles.filter(v => getStatus(v) === 'due').length;
+  document.getElementById('stat-overdue').textContent = vehicles.filter(v => getStatus(v) === 'overdue').length;
+}
+
+function checkAlerts() {
+  const banner   = document.getElementById('alert-banner');
+  const overdue  = vehicles.filter(v => getStatus(v) === 'overdue');
+  if (overdue.length > 0) {
+    banner.style.display = 'block';
+    banner.innerHTML = `🚨 <strong>דורש טיפול דחוף:</strong> ${overdue.map(v => `${v.type} ${v.name}`).join(' | ')}`;
+  } else {
+    banner.style.display = 'none';
+  }
+}
+
+// ─── ADD / EDIT MODAL ────────────────────────────────────────────────────────
+function openAddModal() {
+  editingId = null; pendingFile = null;
+  document.getElementById('modal-title').textContent = '➕ הוספת רכב חדש';
+  document.getElementById('f-name').value = '';
+  document.getElementById('f-num').value  = '';
+  document.getElementById('f-date').value = today();
+  document.getElementById('f-type').value = '🚛';
+  document.getElementById('f-interval-val').value  = '28';
+  document.getElementById('f-interval-unit').value = 'days';
+  document.getElementById('upload-text').textContent = '📎 לחץ להעלאת קובץ';
+  document.getElementById('upload-zone').classList.remove('has-file');
+  openModal('vehicle-modal');
+}
+
+function saveVehicle() {
+  const name = document.getElementById('f-name').value.trim();
+  const num  = document.getElementById('f-num').value.trim();
+  const date = document.getElementById('f-date').value;
+  const type = document.getElementById('f-type').value;
+  const iVal  = parseInt(document.getElementById('f-interval-val').value) || 28;
+  const iUnit = document.getElementById('f-interval-unit').value;
+  const iDays = iUnit === 'weeks' ? iVal * 7 : iVal;
+  if (!name) { alert('נא להזין שם רכב'); return; }
+
+  if (editingId) {
+    const v = vehicles.find(x => x.id === editingId);
+    v.name = name; v.num = num; v.type = type;
+    v.intervalDays = iDays;
+    if (date) v.lastService = date;
+    if (pendingFile) v.license = pendingFile;
+  } else {
+    vehicles.push({
+      id: uid(), name, num, type,
+      intervalDays: iDays,
+      lastService: date || null,
+      history: date ? [{ date, notes: 'טיפול ראשוני' }] : [],
+      license: pendingFile || null
+    });
+  }
+  save(); closeModal('vehicle-modal'); render();
+}
+
+// ─── SERVICE LOG ─────────────────────────────────────────────────────────────
+function openServiceModal(id) {
+  serviceId = id;
+  const v = vehicles.find(x => x.id === id);
+  document.getElementById('service-vehicle-name').textContent = `${v.type} ${v.name} — ${v.num || ''}`;
+  document.getElementById('s-date').value  = today();
+  document.getElementById('s-notes').value = '';
+  openModal('service-modal');
+}
+
+function saveService() {
+  const date  = document.getElementById('s-date').value;
+  const notes = document.getElementById('s-notes').value.trim();
+  if (!date) { alert('נא לבחור תאריך'); return; }
+  const v = vehicles.find(x => x.id === serviceId);
+  v.lastService = date;
+  if (!v.history) v.history = [];
+  v.history.push({ date, notes: notes || 'טיפול שוטף' });
+  save(); closeModal('service-modal'); render();
+  showNotifPopup(`✅ טיפול נרשם בהצלחה עבור ${v.type} ${v.name}`);
+}
+
+// ─── DELETE ──────────────────────────────────────────────────────────────────
+function deleteVehicle(id) {
+  const v = vehicles.find(x => x.id === id);
+  if (!confirm(`למחוק את ${v.type} ${v.name}?`)) return;
+  vehicles = vehicles.filter(x => x.id !== id);
+  save(); render();
+}
+
+// ─── FILE UPLOAD ─────────────────────────────────────────────────────────────
+function handleFileSelect(inp) {
+  const file = inp.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    pendingFile = { name: file.name, dataUrl: e.target.result, type: file.type };
+    document.getElementById('upload-text').textContent = `✅ ${file.name}`;
+    document.getElementById('upload-zone').classList.add('has-file');
+  };
+  reader.readAsDataURL(file);
+}
+
+function triggerUpload(id) {
+  document.getElementById(`upload-${id}`).click();
+}
+
+function handleCardUpload(inp, id) {
+  const file = inp.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const v = vehicles.find(x => x.id === id);
+    v.license = { name: file.name, dataUrl: e.target.result, type: file.type };
+    save(); render();
+  };
+  reader.readAsDataURL(file);
+}
+
+function viewLicense(id) {
+  const v = vehicles.find(x => x.id === id);
+  const c = document.getElementById('license-content');
+  if (v.license.type === 'application/pdf') {
+    c.innerHTML = `<p style="color:var(--text-dim);margin-bottom:10px">${v.license.name}</p>
+      <a href="${v.license.dataUrl}" download="${v.license.name}"
+         style="color:var(--khaki-light)">📥 הורד PDF</a>`;
+  } else {
+    c.innerHTML = `<p style="color:var(--text-dim);margin-bottom:10px">${v.license.name}</p>
+      <img src="${v.license.dataUrl}" alt="רישיון רכב">`;
+  }
+  openModal('license-modal');
+}
+
+// ─── MODALS ──────────────────────────────────────────────────────────────────
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', e => { if (e.target === el) closeModal(el.id); });
+});
+
+// ─── NOTIFICATION POPUP ──────────────────────────────────────────────────────
+function showNotifPopup(msg) {
+  document.getElementById('notif-text').textContent = msg;
+  document.getElementById('notif-popup').classList.add('open');
+  setTimeout(closeNotif, 6000);
+}
+function closeNotif() {
+  document.getElementById('notif-popup').classList.remove('open');
+}
+
+// ─── BROWSER NOTIFICATIONS ───────────────────────────────────────────────────
+function requestNotifyPermission() {
+  if (!('Notification' in window)) { alert('הדפדפן לא תומך בהתראות'); return; }
+  Notification.requestPermission().then(p => {
+    if (p === 'granted') {
+      document.getElementById('notify-btn').textContent = '🔔 התראות פעילות';
+      scheduleNotifications();
+    }
+  });
+}
+
+function sendBrowserNotif(title, body) {
+  if (Notification.permission === 'granted') {
+    new Notification(title, { body, icon: '🪖', tag: 'vehicle-maint' });
+  }
+}
+
+function scheduleNotifications() {
+  const overdue = vehicles.filter(v => getStatus(v) === 'overdue');
+  const due     = vehicles.filter(v => getStatus(v) === 'due');
+  if (overdue.length) sendBrowserNotif('🚨 טיפול דחוף נדרש!',
+    overdue.map(v => `${v.type} ${v.name}`).join(', '));
+  else if (due.length) sendBrowserNotif('⚠️ טיפול קרוב',
+    due.map(v => `${v.type} ${v.name}`).join(', '));
+}
+
+function checkAndNotify() {
+  const overdue = vehicles.filter(v => getStatus(v) === 'overdue');
+  const due     = vehicles.filter(v => getStatus(v) === 'due');
+
+  if (overdue.length) {
+    showNotifPopup(`🚨 ${overdue.map(v => `${v.type} ${v.name}`).join(', ')} — דורש טיפול דחוף!`);
+    sendBrowserNotif('🚨 טיפול דחוף!', overdue.map(v => `${v.type} ${v.name}`).join(', '));
+  } else if (due.length) {
+    showNotifPopup(`⚠️ ${due.map(v => `${v.type} ${v.name}`).join(', ')} — קרוב לטיפול`);
+  }
+}
+
+// ─── PERIODIC CHECK ──────────────────────────────────────────────────────────
+// Check once on load, then every hour in-tab
+function initChecks() {
+  const lastCheck = localStorage.getItem('mil_last_check');
+  const todayStr  = today();
+  if (lastCheck !== todayStr && vehicles.length > 0) {
+    localStorage.setItem('mil_last_check', todayStr);
+    setTimeout(checkAndNotify, 1500);
+  }
+  setInterval(() => {
+    if (vehicles.length > 0) checkAndNotify();
+  }, 3600000); // every hour while tab is open
+}
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+if (Notification.permission === 'granted') {
+  document.getElementById('notify-btn').textContent = '🔔 התראות פעילות';
+}
+render();
+initChecks();
+
+// ─── SERVICE WORKER ──────────────────────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
