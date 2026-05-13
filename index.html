@@ -514,22 +514,39 @@
 
     input[type="file"] { display: none; }
 
+    /* ── SAFE AREA + OVERFLOW FIX ── */
+    html, body { overflow-x: hidden; width: 100%; }
+    body { padding-bottom: env(safe-area-inset-bottom); }
+    header { padding-left: max(20px, env(safe-area-inset-left)); padding-right: max(20px, env(safe-area-inset-right)); }
+    main   { padding-left: max(14px, env(safe-area-inset-left)); padding-right: max(14px, env(safe-area-inset-right)); }
+
     /* ── MOBILE ── */
     @media (max-width: 600px) {
-      .header-title h1   { font-size: 0.9rem; letter-spacing: 1px; }
+      .header-title h1   { font-size: 0.85rem; letter-spacing: 0.5px; }
       .header-title p    { display: none; }
-      #notify-btn        { padding: 7px 10px; font-size: 0.7rem; }
+      #notify-btn        { padding: 7px 10px; font-size: 0.68rem; }
       .stats-bar         { grid-template-columns: repeat(2, 1fr); gap: 8px; }
-      .stat-card .num    { font-size: 1.5rem; }
+      .stat-card .num    { font-size: 1.4rem; }
+      .stat-card         { padding: 10px 6px; }
       #vehicles-list     { grid-template-columns: 1fr; }
-      main               { padding: 14px 10px; }
-      .card-actions      { gap: 6px; }
-      .btn-service, .btn-upload, .btn-delete { font-size: 0.78rem; padding: 9px 6px; }
-      .modal             { padding: 20px 16px 28px; }
+      main               { padding: 12px; }
+      .card-header       { padding: 12px; gap: 8px; }
+      .card-header .vehicle-icon { font-size: 1.5rem; flex-shrink: 0; }
+      .card-header .vehicle-name { font-size: 0.95rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .card-body         { padding: 12px 12px 8px; }
+      .card-actions      { gap: 6px; padding: 8px 12px 12px; }
+      .btn-service, .btn-upload { font-size: 0.78rem; padding: 10px 6px; }
+      .btn-delete        { font-size: 0.78rem; padding: 10px 11px; }
+      .info-row          { font-size: 0.8rem; }
+      .history-list      { margin: 4px 12px 10px; }
+      .license-preview   { margin: 0 12px 10px; }
+      .modal             { padding: 20px 16px 30px; border-radius: 18px 18px 0 0; }
+      .section-header h2 { font-size: 0.9rem; }
+      #add-btn           { font-size: 0.85rem; padding: 10px 16px; }
     }
     @media (max-width: 380px) {
       .header-emblem { font-size: 22px; }
-      .stats-bar     { grid-template-columns: repeat(2,1fr); }
+      #notify-btn    { font-size: 0.62rem; padding: 6px 8px; }
     }
   </style>
 </head>
@@ -577,8 +594,9 @@
 </main>
 
 <footer>
-  <div style="font-size:0.85rem;font-weight:700;color:var(--olive-dark);margin-bottom:4px">מערכת זו פותחה ע״י רס״ר שגיא לוי</div>
-  <div>⚔️ מערכת ניהול רכב צבאי ⚔️</div>
+  <div style="font-size:0.9rem;font-weight:700;color:var(--olive-dark);margin-bottom:2px">מערכת זו פותחה ע״י רס״ר שגיא לוי</div>
+  <div style="font-size:0.8rem;font-weight:600;color:var(--text-dim);margin-bottom:6px">חטיבה 228</div>
+  <div style="font-size:0.7rem">⚔️ מערכת ניהול רכב צבאי ⚔️</div>
 </footer>
 
 <!-- ─── ADD/EDIT MODAL ─── -->
@@ -983,12 +1001,29 @@ function closeNotif() {
 }
 
 // ─── BROWSER NOTIFICATIONS ───────────────────────────────────────────────────
+function isIos() {
+  return /iphone|ipad|ipod/i.test(navigator.userAgent);
+}
+function isInStandaloneMode() {
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+}
+
 function requestNotifyPermission() {
-  if (!('Notification' in window)) { alert('הדפדפן לא תומך בהתראות'); return; }
+  // iOS Safari (not installed as PWA)
+  if (isIos() && !isInStandaloneMode()) {
+    showNotifPopup('📲 כדי לקבל התראות ב-iPhone:\nלחץ על כפתור השיתוף ← "הוסף למסך הבית" ← פתח את האפליקציה מהמסך הבית ← לחץ שוב על הפעל התראות');
+    return;
+  }
+  if (!('Notification' in window)) {
+    showNotifPopup('⚠️ הדפדפן אינו תומך בהתראות. נסה לפתוח ב-Chrome.');
+    return;
+  }
   Notification.requestPermission().then(p => {
     if (p === 'granted') {
       document.getElementById('notify-btn').textContent = '🔔 התראות פעילות';
       scheduleNotifications();
+    } else {
+      showNotifPopup('⚠️ לא אושרו התראות. אפשר בהגדרות הדפדפן.');
     }
   });
 }
