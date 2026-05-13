@@ -1,6 +1,6 @@
 {
-  "name": "מערכת טיפולי רכב",
-  "short_name": "טיפולי רכב",
+  "name": "ניהול רכב צבאי",
+  "short_name": "ניהול רכב צבאי",
   "description": "מערכת ניהול טיפולי רכב צבאית — רס״ר שגיא לוי",
   "start_url": "./index.html",
   "display": "standalone",
