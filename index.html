@@ -1272,27 +1272,37 @@ if (Notification.permission === 'granted') {
   document.getElementById('notify-btn').textContent = '🔔 התראות פעילות';
 }
 
-// Show loading state
+function applySnapshot(snapshot) {
+  vehicles = snapshot.docs
+    .map(doc => ({ id: doc.id, ...doc.data() }))
+    .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'he'));
+  render();
+  initChecks();
+}
+
+function showFirestoreError(err) {
+  console.error('Firestore error:', err);
+  const banner = document.getElementById('alert-banner');
+  banner.style.display = 'block';
+  banner.style.animation = 'none';
+  banner.innerHTML = `⚠️ שגיאת חיבור: ${err.code || err.message} <button onclick="location.reload()" style="margin-right:10px;padding:4px 12px;border-radius:8px;border:none;background:#fff;color:#c0392b;cursor:pointer;font-weight:700">רענן</button>`;
+  document.getElementById('vehicles-list').innerHTML =
+    '<div class="empty-state"><div class="empty-icon">❌</div><p>לא ניתן לטעון נתונים — בדוק אינטרנט</p></div>';
+}
+
+// Show loading
 document.getElementById('vehicles-list').innerHTML =
   '<div class="empty-state"><div class="empty-icon">⏳</div><p>טוען נתונים מהענן...</p></div>';
 
+// 1. טעינה מיידית מהשרת (חד-פעמית, תמיד עובדת)
+vehiclesCol.get({ source: 'server' })
+  .then(applySnapshot)
+  .catch(err => showFirestoreError(err));
+
+// 2. האזנה לשינויים בזמן אמת (לעדכונים חיים)
 vehiclesCol.onSnapshot(
-  snapshot => {
-    vehicles = snapshot.docs
-      .map(doc => ({ id: doc.id, ...doc.data() }))
-      .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'he'));
-    render();
-    initChecks();
-  },
-  err => {
-    console.error('Firestore error:', err);
-    const banner = document.getElementById('alert-banner');
-    banner.style.display = 'block';
-    banner.style.animation = 'none';
-    banner.innerHTML = `⚠️ שגיאת חיבור לענן: ${err.code || err.message} — בדוק אינטרנט ו-Firestore Rules`;
-    document.getElementById('vehicles-list').innerHTML =
-      '<div class="empty-state"><div class="empty-icon">❌</div><p>לא ניתן לטעון נתונים</p></div>';
-  }
+  applySnapshot,
+  err => console.warn('onSnapshot error (ignored, using get):', err.code)
 );
 
 // ─── SERVICE WORKER ──────────────────────────────────────────────────────────
