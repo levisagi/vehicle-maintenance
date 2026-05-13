@@ -15,7 +15,6 @@
   <link rel="icon" href="icon-192.png">
   <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <style>
     :root {
@@ -757,9 +756,8 @@ firebase.initializeApp({
   messagingSenderId: "1002138936040",
   appId:             "1:1002138936040:web:64f879bf38b8728aefdf5d"
 });
-const db   = firebase.firestore();
-const auth = firebase.auth();
-let vehiclesCol = null;
+const db          = firebase.firestore();
+const vehiclesCol = db.collection('vehicles');
 
 // ─── STATE ───────────────────────────────────────────────────────────────────
 const WARN_DAYS_BEFORE = 3;
