@@ -11,9 +11,11 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="ניהול רכב צבאי">
   <link rel="manifest" href="manifest.json">
-  <!-- Apple touch icons (inline SVG as data URI) -->
   <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="icon" href="icon-192.png">
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <style>
     :root {
       --olive:       #6b8c3e;
@@ -739,20 +741,41 @@
 </div>
 
 <script>
+// ─── FIREBASE INIT ────────────────────────────────────────────────────────────
+firebase.initializeApp({
+  apiKey:            "AIzaSyAV48-01oI8-EuzcHGVwvK0TXL94CAgH1s",
+  authDomain:        "zivcars.firebaseapp.com",
+  projectId:         "zivcars",
+  storageBucket:     "zivcars.firebasestorage.app",
+  messagingSenderId: "1002138936040",
+  appId:             "1:1002138936040:web:64f879bf38b8728aefdf5d"
+});
+const db          = firebase.firestore();
+const vehiclesCol = db.collection('vehicles');
+
 // ─── STATE ───────────────────────────────────────────────────────────────────
 const WARN_DAYS_BEFORE = 3;
 
-let vehicles   = JSON.parse(localStorage.getItem('mil_vehicles')   || '[]');
-let editingId  = null;
-let serviceId  = null;
-let pendingFile = null; // { name, dataUrl }
+let vehicles    = [];
+let editingId   = null;
+let serviceId   = null;
+let pendingFile = null;
 
-// ─── UTILS ───────────────────────────────────────────────────────────────────
-function save() {
+// ─── FIRESTORE SAVE / DELETE ─────────────────────────────────────────────────
+async function saveVehicleDoc(v) {
+  const { id, ...data } = v;
   try {
-    localStorage.setItem('mil_vehicles', JSON.stringify(vehicles));
-  } catch (e) {
-    showNotifPopup('⚠️ אחסון מלא — התמונה גדולה מדי. נסה תמונה קטנה יותר.');
+    await vehiclesCol.doc(id).set(data);
+  } catch(e) {
+    showNotifPopup('⚠️ שגיאה בשמירה לענן: ' + e.message);
+  }
+}
+
+async function deleteVehicleDoc(id) {
+  try {
+    await vehiclesCol.doc(id).delete();
+  } catch(e) {
+    showNotifPopup('⚠️ שגיאה במחיקה');
   }
 }
 
@@ -971,6 +994,7 @@ function saveVehicle() {
 
   document.getElementById('vehicle-error').style.display = 'none';
 
+  let vehicleToSave;
   if (editingId) {
     const v = vehicles.find(x => x.id === editingId);
     v.name = name; v.num = num; v.type = type;
@@ -978,17 +1002,21 @@ function saveVehicle() {
     v.testExpiry   = testExpiry;
     if (date) v.lastService = date;
     if (pendingFile) v.license = pendingFile;
+    vehicleToSave = v;
   } else {
-    vehicles.push({
+    vehicleToSave = {
       id: uid(), name, num, type,
       intervalDays: iDays,
       testExpiry,
       lastService: date || null,
       history: date ? [{ date, notes: 'טיפול ראשוני' }] : [],
       license: pendingFile || null
-    });
+    };
+    vehicles.push(vehicleToSave);
   }
-  save(); closeModal('vehicle-modal'); render();
+  render();
+  closeModal('vehicle-modal');
+  saveVehicleDoc(vehicleToSave);
 }
 
 // ─── SERVICE LOG ─────────────────────────────────────────────────────────────
@@ -1015,8 +1043,10 @@ function saveService() {
   v.lastService = date;
   if (!v.history) v.history = [];
   v.history.push({ date, notes: notes || 'טיפול שוטף' });
-  save(); closeModal('service-modal'); render();
+  render();
+  closeModal('service-modal');
   showNotifPopup(`✅ טיפול נרשם בהצלחה עבור ${v.type} ${v.name}`);
+  saveVehicleDoc(v);
 }
 
 // ─── DELETE ──────────────────────────────────────────────────────────────────
@@ -1024,7 +1054,8 @@ function deleteVehicle(id) {
   const v = vehicles.find(x => x.id === id);
   showConfirm(`למחוק את ${v.type} ${v.name}?`, () => {
     vehicles = vehicles.filter(x => x.id !== id);
-    save(); render();
+    render();
+    deleteVehicleDoc(id);
   });
 }
 
@@ -1096,7 +1127,8 @@ function handleCardUpload(inp, id) {
   compressImage(file, result => {
     const v = vehicles.find(x => x.id === id);
     v.license = result;
-    save(); render();
+    render();
+    saveVehicleDoc(v);
   });
 }
 
@@ -1188,25 +1220,34 @@ function checkAndNotify() {
 }
 
 // ─── PERIODIC CHECK ──────────────────────────────────────────────────────────
-// Check once on load, then every hour in-tab
+let checksStarted = false;
 function initChecks() {
-  const lastCheck = localStorage.getItem('mil_last_check');
-  const todayStr  = today();
-  if (lastCheck !== todayStr && vehicles.length > 0) {
-    localStorage.setItem('mil_last_check', todayStr);
-    setTimeout(checkAndNotify, 1500);
-  }
-  setInterval(() => {
-    if (vehicles.length > 0) checkAndNotify();
-  }, 3600000); // every hour while tab is open
+  if (checksStarted) return;
+  checksStarted = true;
+  setTimeout(checkAndNotify, 1500);
+  setInterval(() => { if (vehicles.length > 0) checkAndNotify(); }, 3600000);
 }
 
-// ─── INIT ────────────────────────────────────────────────────────────────────
+// ─── INIT — load from Firestore ──────────────────────────────────────────────
 if (Notification.permission === 'granted') {
   document.getElementById('notify-btn').textContent = '🔔 התראות פעילות';
 }
-render();
-initChecks();
+
+// Show loading state
+document.getElementById('vehicles-list').innerHTML =
+  '<div class="empty-state"><div class="empty-icon">⏳</div><p>טוען נתונים מהענן...</p></div>';
+
+vehiclesCol.orderBy('name').onSnapshot(
+  snapshot => {
+    vehicles = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    render();
+    initChecks();
+  },
+  err => {
+    showNotifPopup('⚠️ שגיאת חיבור — בדוק אינטרנט');
+    render(); // show empty state
+  }
+);
 
 // ─── SERVICE WORKER ──────────────────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
