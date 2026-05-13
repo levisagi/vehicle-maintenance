@@ -1276,15 +1276,22 @@ if (Notification.permission === 'granted') {
 document.getElementById('vehicles-list').innerHTML =
   '<div class="empty-state"><div class="empty-icon">⏳</div><p>טוען נתונים מהענן...</p></div>';
 
-vehiclesCol.orderBy('name').onSnapshot(
+vehiclesCol.onSnapshot(
   snapshot => {
-    vehicles = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    vehicles = snapshot.docs
+      .map(doc => ({ id: doc.id, ...doc.data() }))
+      .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'he'));
     render();
     initChecks();
   },
   err => {
-    showNotifPopup('⚠️ שגיאת חיבור — בדוק אינטרנט');
-    render(); // show empty state
+    console.error('Firestore error:', err);
+    const banner = document.getElementById('alert-banner');
+    banner.style.display = 'block';
+    banner.style.animation = 'none';
+    banner.innerHTML = `⚠️ שגיאת חיבור לענן: ${err.code || err.message} — בדוק אינטרנט ו-Firestore Rules`;
+    document.getElementById('vehicles-list').innerHTML =
+      '<div class="empty-state"><div class="empty-icon">❌</div><p>לא ניתן לטעון נתונים</p></div>';
   }
 );
 
