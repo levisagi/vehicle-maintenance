@@ -2,7 +2,7 @@
 <html lang="he" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
   <title>טיפולי רכב | רס״ר שגיא לוי</title>
   <meta name="description" content="מערכת ניהול טיפולי רכב צבאית">
   <meta name="theme-color" content="#4a6628">
@@ -516,9 +516,21 @@
 
     /* ── SAFE AREA + OVERFLOW FIX ── */
     html, body { overflow-x: hidden; width: 100%; }
-    body { padding-bottom: env(safe-area-inset-bottom); }
-    header { padding-left: max(20px, env(safe-area-inset-left)); padding-right: max(20px, env(safe-area-inset-right)); }
-    main   { padding-left: max(14px, env(safe-area-inset-left)); padding-right: max(14px, env(safe-area-inset-right)); }
+    body {
+      padding-bottom: env(safe-area-inset-bottom);
+      padding-top: env(safe-area-inset-top);
+    }
+    header {
+      padding-top: max(14px, env(safe-area-inset-top));
+      padding-left: max(20px, env(safe-area-inset-left));
+      padding-right: max(20px, env(safe-area-inset-right));
+    }
+    /* כשרץ כ-PWA — body כבר מוסיף את ה-safe area, אז header לא צריך כפל */
+    @media all and (display-mode: standalone) {
+      body { padding-top: 0; }
+      header { padding-top: max(14px, env(safe-area-inset-top)); }
+    }
+    main { padding-left: max(14px, env(safe-area-inset-left)); padding-right: max(14px, env(safe-area-inset-right)); }
 
     /* ── MOBILE ── */
     @media (max-width: 600px) {
