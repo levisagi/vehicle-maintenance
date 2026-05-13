@@ -434,6 +434,22 @@
     .history-entry:last-child { border-bottom: none; }
     .history-entry .h-date { color: var(--olive-dark); font-weight: 600; }
 
+    /* ── TEST EXPIRY STRIP ── */
+    .test-strip {
+      margin: 0 0 0 0;
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.82rem;
+      border-top: 1px solid var(--bg3);
+    }
+    .test-strip .t-lbl { color: var(--text-dim); }
+    .test-strip .t-val { font-weight: 700; }
+    .test-ok      { color: var(--green-dark); }
+    .test-soon    { color: #856404; background: #fef9ec; }
+    .test-expired { color: var(--red-dark); background: #fde8e6; }
+
     /* ── NOTIFICATION POPUP ── */
     .notif-popup {
       display: none;
@@ -640,6 +656,10 @@
       <input type="date" id="f-date">
     </div>
     <div class="form-group">
+      <label>תוקף טסט / רשיון רכב</label>
+      <input type="date" id="f-test-expiry" placeholder="תאריך פקיעת הטסט">
+    </div>
+    <div class="form-group">
       <label>תדירות טיפול</label>
       <div style="display:flex;gap:8px;align-items:center">
         <input type="number" id="f-interval-val" min="1" max="365" value="28"
@@ -795,6 +815,25 @@ function render() {
       ? `כל ${interval / 7} שבועות`
       : `כל ${interval} ימים`;
 
+    // ── TEST EXPIRY ──
+    let testHtml = '';
+    if (v.testExpiry) {
+      const daysToTest = daysDiff(today(), v.testExpiry);
+      let tClass, tLabel;
+      if (daysToTest < 0) {
+        tClass = 'test-expired'; tLabel = `פג תוקף לפני ${Math.abs(daysToTest)} ימים 🚨`;
+      } else if (daysToTest <= 30) {
+        tClass = 'test-soon'; tLabel = `נותרו ${daysToTest} ימים ⚠️`;
+      } else {
+        tClass = 'test-ok'; tLabel = `נותרו ${daysToTest} ימים ✅`;
+      }
+      testHtml = `
+        <div class="test-strip ${daysToTest <= 30 ? (daysToTest < 0 ? 'test-expired' : 'test-soon') : ''}">
+          <span class="t-lbl">🔖 תוקף טסט: ${formatDate(v.testExpiry)}</span>
+          <span class="t-val ${tClass}">${tLabel}</span>
+        </div>`;
+    }
+
     const historyHtml = (v.history || []).slice(-3).reverse().map(h =>
       `<div class="history-entry">
         <span>${h.notes || 'טיפול שוטף'}</span>
@@ -837,6 +876,7 @@ function render() {
         </div>
         ${historyHtml ? `<div class="history-list">${historyHtml}</div>` : ''}
       </div>
+      ${testHtml}
       ${licenseHtml}
       <div class="card-actions">
         <button class="btn-service" onclick="openServiceModal('${v.id}')">🔧 רשום טיפול</button>
@@ -890,6 +930,7 @@ function openAddModal() {
   document.getElementById('f-type').value = '🚛';
   document.getElementById('f-interval-val').value  = '28';
   document.getElementById('f-interval-unit').value = 'days';
+  document.getElementById('f-test-expiry').value   = '';
   document.getElementById('upload-text').textContent = '📎 לחץ להעלאת קובץ';
   document.getElementById('upload-zone').classList.remove('has-file');
   openModal('vehicle-modal');
@@ -907,9 +948,10 @@ function saveVehicle() {
   const num  = document.getElementById('f-num').value.trim();
   const date = document.getElementById('f-date').value;
   const type = document.getElementById('f-type').value;
-  const iVal  = parseInt(document.getElementById('f-interval-val').value) || 28;
-  const iUnit = document.getElementById('f-interval-unit').value;
-  const iDays = iUnit === 'weeks' ? iVal * 7 : iVal;
+  const iVal       = parseInt(document.getElementById('f-interval-val').value) || 28;
+  const iUnit      = document.getElementById('f-interval-unit').value;
+  const iDays      = iUnit === 'weeks' ? iVal * 7 : iVal;
+  const testExpiry = document.getElementById('f-test-expiry').value || null;
   if (!name) { showVehicleError('⚠️ נא להזין שם רכב'); return; }
 
   document.getElementById('vehicle-error').style.display = 'none';
@@ -918,12 +960,14 @@ function saveVehicle() {
     const v = vehicles.find(x => x.id === editingId);
     v.name = name; v.num = num; v.type = type;
     v.intervalDays = iDays;
+    v.testExpiry   = testExpiry;
     if (date) v.lastService = date;
     if (pendingFile) v.license = pendingFile;
   } else {
     vehicles.push({
       id: uid(), name, num, type,
       intervalDays: iDays,
+      testExpiry,
       lastService: date || null,
       history: date ? [{ date, notes: 'טיפול ראשוני' }] : [],
       license: pendingFile || null
