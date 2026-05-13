@@ -445,6 +445,7 @@
     }
     .history-entry {
       display: flex;
+      align-items: center;
       justify-content: space-between;
       padding: 5px 0;
       border-bottom: 1px solid var(--bg3);
@@ -452,6 +453,11 @@
     }
     .history-entry:last-child { border-bottom: none; }
     .history-entry .h-date { color: var(--olive-dark); font-weight: 600; }
+    .history-entry .h-del {
+      background: none; border: none; color: var(--red); cursor: pointer;
+      font-size: 0.85rem; padding: 0 0 0 6px; opacity: 0.6; line-height: 1;
+    }
+    .history-entry .h-del:hover { opacity: 1; }
 
     /* ── TEST EXPIRY STRIP ── */
     .test-strip {
@@ -881,11 +887,15 @@ function render() {
         </div>`;
     }
 
-    const historyHtml = (v.history || []).slice(-3).reverse().map(h =>
-      `<div class="history-entry">
+    const allHistory = v.history || [];
+    const historyHtml = allHistory.slice(-3).reverse().map((h, ri) => {
+      const realIdx = allHistory.length - 1 - ri;
+      return `<div class="history-entry">
         <span>${h.notes || 'טיפול שוטף'}</span>
         <span class="h-date">${formatDate(h.date)}</span>
-      </div>`).join('');
+        <button class="h-del" onclick="deleteServiceEntry('${v.id}',${realIdx})" title="מחק רישום">✕</button>
+      </div>`;
+    }).join('');
 
     const licenseHtml = v.license
       ? `<div class="license-preview" onclick="viewLicense('${v.id}')">📄 ${v.license.name} — לחץ לצפייה</div>`
@@ -1089,6 +1099,25 @@ function saveService() {
   closeModal('service-modal');
   showNotifPopup(`✅ טיפול נרשם בהצלחה עבור ${v.type} ${v.name}`);
   saveVehicleDoc(v);
+}
+
+// ─── DELETE SERVICE ENTRY ────────────────────────────────────────────────────
+function deleteServiceEntry(vehicleId, entryIdx) {
+  const v = vehicles.find(x => x.id === vehicleId);
+  if (!v || !v.history) return;
+  showConfirm(`למחוק רישום טיפול מתאריך ${formatDate(v.history[entryIdx].date)}?`, () => {
+    v.history.splice(entryIdx, 1);
+    // recalculate lastService from remaining history
+    if (v.history.length > 0) {
+      v.lastService = v.history.reduce((latest, h) =>
+        h.date > latest ? h.date : latest, v.history[0].date);
+    } else {
+      v.lastService = null;
+    }
+    render();
+    saveVehicleDoc(v);
+    showNotifPopup('✅ רישום הטיפול נמחק');
+  });
 }
 
 // ─── DELETE ──────────────────────────────────────────────────────────────────
