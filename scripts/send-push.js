@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
  * Daily push notification script — runs via GitHub Actions
- * Reads vehicles from Firestore, sends FCM push to all registered tokens
- * for vehicles that are overdue or due soon.
+ * Sends FCM push ONLY when a vehicle service is overdue/due,
+ * or when a test (טסט) is expired or expiring within 30 days.
  */
 
 const admin = require('firebase-admin');
@@ -16,19 +16,28 @@ admin.initializeApp({
 
 const db = admin.firestore();
 
-function daysBetween(dateStr) {
-  if (!dateStr) return null;
-  const last = new Date(dateStr);
-  const now  = new Date();
-  return Math.floor((now - last) / 86400000);
+function todayStr() {
+  return new Date().toISOString().slice(0, 10);
 }
 
-function getStatus(v) {
-  const elapsed = daysBetween(v.lastService);
-  if (elapsed === null) return 'ok';
+function daysBetween(a, b) {
+  return Math.round((new Date(b) - new Date(a)) / 86400000);
+}
+
+function getServiceStatus(v) {
+  if (!v.lastService) return 'overdue';
+  const elapsed  = daysBetween(v.lastService, todayStr());
   const interval = v.intervalDays || 28;
-  if (elapsed >= interval)             return 'overdue';
-  if (elapsed >= interval - 3)         return 'due';
+  if (elapsed >= interval)       return 'overdue';
+  if (elapsed >= interval - 3)   return 'due';
+  return 'ok';
+}
+
+function getTestStatus(v) {
+  if (!v.testExpiry) return 'ok';
+  const daysLeft = daysBetween(todayStr(), v.testExpiry);
+  if (daysLeft < 0)    return 'expired';
+  if (daysLeft <= 30)  return 'soon';
   return 'ok';
 }
 
@@ -46,31 +55,51 @@ async function run() {
     return;
   }
 
-  const overdue = vehicles.filter(v => getStatus(v) === 'overdue');
-  const due     = vehicles.filter(v => getStatus(v) === 'due');
+  // ── Service alerts ──
+  const overdueService = vehicles.filter(v => getServiceStatus(v) === 'overdue');
+  const dueService     = vehicles.filter(v => getServiceStatus(v) === 'due');
 
-  let title, body;
-  if (overdue.length) {
-    title = '🚨 טיפול דחוף נדרש!';
-    body  = overdue.map(v => `${v.type} ${v.name}`).join(', ');
-  } else if (due.length) {
-    title = '⚠️ טיפול קרוב';
-    body  = due.map(v => `${v.type} ${v.name}`).join(', ');
-  } else {
-    console.log('All vehicles OK — no push needed.');
+  // ── Test expiry alerts ──
+  const expiredTest = vehicles.filter(v => getTestStatus(v) === 'expired');
+  const soonTest    = vehicles.filter(v => getTestStatus(v) === 'soon');
+
+  const lines = [];
+  let title = '';
+
+  if (overdueService.length) {
+    if (!title) title = '🚨 טיפול דחוף נדרש!';
+    lines.push(`טיפול באיחור: ${overdueService.map(v => `${v.type} ${v.name}`).join(', ')}`);
+  }
+  if (dueService.length) {
+    if (!title) title = '⚠️ תזכורת טיפול';
+    lines.push(`קרוב לטיפול: ${dueService.map(v => `${v.type} ${v.name}`).join(', ')}`);
+  }
+  if (expiredTest.length) {
+    if (!title) title = '🚨 טסט פג תוקף!';
+    lines.push(`טסט פג: ${expiredTest.map(v => `${v.type} ${v.name}`).join(', ')}`);
+  }
+  if (soonTest.length) {
+    if (!title) title = title || '⚠️ תזכורת טסט';
+    lines.push(`טסט קרוב: ${soonTest.map(v => `${v.type} ${v.name}`).join(', ')}`);
+  }
+
+  if (!lines.length) {
+    console.log('All vehicles OK — no push needed today.');
     return;
   }
 
-  console.log(`Sending push: ${title} — ${body}`);
+  const body = lines.join('\n');
+  console.log(`Sending push: ${title}`);
+  console.log(body);
   console.log(`Tokens: ${tokens.length}`);
 
   const message = {
     notification: { title, body },
     webpush: {
       notification: {
-        icon:             'https://levisagi.github.io/vehicle-maintenance/icon-192.png',
-        badge:            'https://levisagi.github.io/vehicle-maintenance/icon-192.png',
-        tag:              'vehicle-maint',
+        icon:               'https://levisagi.github.io/vehicle-maintenance/icon-192.png',
+        badge:              'https://levisagi.github.io/vehicle-maintenance/icon-192.png',
+        tag:                'vehicle-maint',
         requireInteraction: true,
       },
       fcmOptions: {
@@ -83,13 +112,15 @@ async function run() {
   const result = await admin.messaging().sendEachForMulticast(message);
   console.log(`Success: ${result.successCount}, Failed: ${result.failureCount}`);
 
-  // Clean up invalid tokens
+  // Clean up invalid/expired tokens automatically
   const staleTokens = [];
   result.responses.forEach((resp, i) => {
     if (!resp.success) {
       const code = resp.error && resp.error.code;
-      if (code === 'messaging/invalid-registration-token' ||
-          code === 'messaging/registration-token-not-registered') {
+      if (
+        code === 'messaging/invalid-registration-token' ||
+        code === 'messaging/registration-token-not-registered'
+      ) {
         staleTokens.push(tokens[i]);
       }
     }
