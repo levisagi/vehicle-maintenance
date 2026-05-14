@@ -678,15 +678,19 @@
       <input type="text" id="f-num" placeholder="לדוג': 12-345-67">
     </div>
     <div class="form-group">
-      <label>תאריך טיפול אחרון</label>
+      <label>תאריך בחינה אחרונה במת״א</label>
       <input type="date" id="f-date">
+    </div>
+    <div class="form-group">
+      <label>טיפול במוסך אחרון</label>
+      <input type="date" id="f-garage">
     </div>
     <div class="form-group">
       <label>תוקף טסט / רשיון רכב</label>
       <input type="date" id="f-test-expiry" placeholder="תאריך פקיעת הטסט">
     </div>
     <div class="form-group">
-      <label>תדירות טיפול</label>
+      <label>תדירות בחינה במת״א</label>
       <div style="display:flex;gap:8px;align-items:center;width:100%">
         <input type="number" id="f-interval-val" min="1" max="365" value="28"
                style="width:80px;min-width:0;flex-shrink:0;text-align:center">
@@ -715,19 +719,19 @@
 <div class="modal-overlay" id="service-modal">
   <div class="modal">
     <div class="modal-handle"></div>
-    <h3>🔧 רישום טיפול</h3>
+    <h3>🔧 רישום בחינה במת״א</h3>
     <p style="color:var(--text-dim);font-size:0.82rem;margin-bottom:16px;letter-spacing:1px" id="service-vehicle-name"></p>
     <div class="form-group">
-      <label>תאריך הטיפול</label>
+      <label>תאריך הבחינה</label>
       <input type="date" id="s-date">
     </div>
     <div class="form-group">
       <label>הערות (אופציונלי)</label>
-      <input type="text" id="s-notes" placeholder="לדוג': החלפת שמן + פילטר...">
+      <input type="text" id="s-notes" placeholder="לדוג': עבר בחינה, הערות טכניות...">
     </div>
     <div id="service-error" style="display:none;color:#c0392b;background:#fde8e6;border-radius:8px;padding:10px 14px;font-size:0.85rem;margin-top:4px;text-align:center"></div>
     <div class="modal-actions">
-      <button class="btn-save" onclick="saveService()">✅ אשר טיפול</button>
+      <button class="btn-save" onclick="saveService()">✅ אשר בחינה</button>
       <button class="btn-cancel" onclick="closeModal('service-modal')">ביטול</button>
     </div>
   </div>
@@ -913,16 +917,20 @@ function render() {
       </div>
       <div class="card-body">
         <div class="info-row">
-          <span class="lbl">טיפול אחרון</span>
+          <span class="lbl">בחינה אחרונה במת״א</span>
           <span class="val">${formatDate(v.lastService)}</span>
         </div>
         <div class="info-row">
-          <span class="lbl">טיפול הבא</span>
+          <span class="lbl">בחינה הבאה במת״א</span>
           <span class="val">${formatDate(nextService)}</span>
         </div>
         <div class="info-row">
-          <span class="lbl">תדירות</span>
+          <span class="lbl">תדירות בחינה</span>
           <span class="val" style="color:var(--olive-dark)">${intervalLabel}</span>
+        </div>
+        <div class="info-row">
+          <span class="lbl">מוסך אחרון</span>
+          <span class="val">${v.lastGarage ? formatDate(v.lastGarage) : '—'}</span>
         </div>
         <div class="info-row">
           <span class="lbl">סטטוס</span>
@@ -936,7 +944,7 @@ function render() {
       ${testHtml}
       ${licenseHtml}
       <div class="card-actions">
-        <button class="btn-service" onclick="openServiceModal('${v.id}')">🔧 רשום טיפול</button>
+        <button class="btn-service" onclick="openServiceModal('${v.id}')">🔧 רשום בחינה</button>
         <button class="btn-service btn-edit" onclick="openEditModal('${v.id}')">✏️ עריכה</button>
         <button class="btn-service btn-upload" onclick="triggerUpload('${v.id}')">📎 רישיון</button>
         <button class="btn-delete" onclick="deleteVehicle('${v.id}')">✕</button>
@@ -988,6 +996,7 @@ function openAddModal() {
   document.getElementById('f-type').value            = '🚛';
   document.getElementById('f-interval-val').value    = '28';
   document.getElementById('f-interval-unit').value   = 'days';
+  document.getElementById('f-garage').value          = '';
   document.getElementById('f-test-expiry').value     = '';
   document.getElementById('upload-text').textContent = '📎 לחץ להעלאת קובץ';
   document.getElementById('upload-zone').classList.remove('has-file');
@@ -1004,7 +1013,8 @@ function openEditModal(id) {
   document.getElementById('f-num').value   = v.num   || '';
   document.getElementById('f-date').value  = v.lastService || '';
   document.getElementById('f-type').value  = v.type  || '🚛';
-  document.getElementById('f-test-expiry').value = v.testExpiry || '';
+  document.getElementById('f-garage').value      = v.lastGarage  || '';
+  document.getElementById('f-test-expiry').value = v.testExpiry  || '';
 
   const iDays = v.intervalDays || 28;
   if (iDays % 7 === 0) {
@@ -1041,6 +1051,7 @@ function saveVehicle() {
   const iVal       = parseInt(document.getElementById('f-interval-val').value) || 28;
   const iUnit      = document.getElementById('f-interval-unit').value;
   const iDays      = iUnit === 'weeks' ? iVal * 7 : iVal;
+  const lastGarage = document.getElementById('f-garage').value || null;
   const testExpiry = document.getElementById('f-test-expiry').value || null;
   if (!name) { showVehicleError('⚠️ נא להזין שם רכב'); return; }
 
@@ -1051,6 +1062,7 @@ function saveVehicle() {
     const v = vehicles.find(x => x.id === editingId);
     v.name = name; v.num = num; v.type = type;
     v.intervalDays = iDays;
+    v.lastGarage   = lastGarage;
     v.testExpiry   = testExpiry;
     if (date) v.lastService = date;
     if (pendingFile) v.license = pendingFile;
@@ -1059,9 +1071,10 @@ function saveVehicle() {
     vehicleToSave = {
       id: uid(), name, num, type,
       intervalDays: iDays,
+      lastGarage,
       testExpiry,
       lastService: date || null,
-      history: date ? [{ date, notes: 'טיפול ראשוני' }] : [],
+      history: date ? [{ date, notes: 'בחינה ראשונית' }] : [],
       license: pendingFile || null
     };
     vehicles.push(vehicleToSave);
